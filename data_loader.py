@@ -11,10 +11,10 @@ from data_cleaner import (
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data_files")
 
 CSV_FILES = {
-    "cpu":     "cpu_data.csv",
-    "gpu":     "gpu_data.csv",
-    "mobo":    "motherboard_data.csv",
-    "ram":     "ram_data.csv",
+    "cpu":     "cpu_data_280.csv",
+    "gpu":     "gpu_data_280.csv",
+    "mobo":    "motherboard_data_280.csv",
+    "ram":     "ram_data_280.csv",
     "storage": "storage_data.csv",
     "psu":     "psu_data.csv",
     "cooler":  "cooler_data.csv",
