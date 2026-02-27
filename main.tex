@@ -1,0 +1,69 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{titlesec}
+\usepackage{enumitem}
+
+\title{\textbf{AI-Based PC Build Recommendation Engine}}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section*{Overview}
+
+This project presents an intelligent \textbf{PC Build Recommendation Engine} powered by \textbf{Google OR-Tools (CP-SAT Solver)}. The system automates the process of selecting balanced gaming PC components based on budget, hardware compatibility, and performance optimization principles used by professional system builders.
+
+\section*{Objective}
+
+To generate \textbf{bottleneck-free, tier-correct gaming PC builds} that scale realistically with budget while maintaining electrical safety, platform compatibility, and performance efficiency.
+
+\section*{System Architecture}
+
+\begin{itemize}[noitemsep]
+    \item \textbf{Data Layer:} CSV datasets containing CPU, GPU, Motherboard, and RAM specifications.
+    \item \textbf{Processing Layer:} Data cleaning, normalization, and feature extraction (clocks, cache, latency, TDP).
+    \item \textbf{Constraint Engine:} Compatibility and quality rules encoded into a CP-SAT optimization model.
+    \item \textbf{Optimization Layer:} Solver maximizes gaming performance under constraints.
+    \item \textbf{Output Layer:} Final component list, cooling type, and PSU recommendation.
+\end{itemize}
+
+\section*{Key Optimization Rules}
+
+\begin{itemize}[noitemsep]
+    \item CPU–Motherboard socket compatibility
+    \item CPU–RAM generation matching (DDR4/DDR5)
+    \item GPU–CPU tier pairing to avoid bottlenecks
+    \item Motherboard class scaling with budget tier
+    \item RAM capacity scaling (16GB → 32GB → 64GB)
+    \item RAM latency prioritization (lower CAS latency preferred)
+    \item PSU sizing based on system power draw
+    \item Cooling selection based on thermal environment and budget
+\end{itemize}
+
+\section*{Performance Modeling}
+
+CPU performance score is derived from:
+\begin{itemize}[noitemsep]
+    \item L3 Cache size
+    \item Boost clock frequency
+    \item Lithography (process node)
+    \item Simultaneous Multithreading (SMT)
+\end{itemize}
+
+GPU performance score is based on VRAM and clock metrics. The solver maximizes overall gaming performance while penalizing inefficient component choices.
+
+\section*{Technologies Used}
+
+\begin{itemize}[noitemsep]
+    \item Python 3
+    \item Google OR-Tools (CP-SAT Solver)
+    \item pandas and NumPy for data processing
+\end{itemize}
+
+\section*{Conclusion}
+
+The system successfully models real-world PC building expertise as a mathematical optimization problem, producing realistic, performance-balanced gaming builds automatically.
+
+\end{document}
