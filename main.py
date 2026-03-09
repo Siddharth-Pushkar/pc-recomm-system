@@ -104,10 +104,7 @@ def main():
     )
     add_ram_constraints(pc.model, ram_df, pc.ram_vars, pc.cpu_vars, cpu_df, budget)
     add_storage_constraints(pc.model, storage_df, pc.storage_vars, budget)
-    add_psu_constraints(
-        pc.model, psu_df, pc.psu_vars,
-        cpu_df, pc.cpu_vars, gpu_df, pc.gpu_vars, budget
-    )
+    add_psu_constraints(model, cpu_df, cpu_vars, gpu_df, gpu_vars, mobo_df, mobo_vars, psu_df, psu_vars, budget, use_case)
     add_cooler_constraints(
         pc.model, cooler_df, pc.cooler_vars,
         cpu_df, pc.cpu_vars, budget, room_condition
