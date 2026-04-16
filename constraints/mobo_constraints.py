@@ -28,19 +28,43 @@ def add_mobo_constraints(model, mobo_df, mobo_vars,
 
     tier = get_budget_tier(budget)
 
+    def _effective_min(min_by_tier, values):
+        """
+        Pick the strictest tier minimum that is still achievable
+        with the current motherboard dataset. This avoids infeasible
+        builds when the dataset lacks features like PCIe 5.0 or high
+        USB counts at higher budgets.
+        """
+        order = ["entry", "low", "mid", "high", "ultra"]
+        idx = order.index(tier)
+        vals = [v for v in values if v > 0]
+        if not vals:
+            return min_by_tier[order[idx]]
+        for j in range(idx, -1, -1):
+            req = min_by_tier[order[j]]
+            if any(v >= req for v in vals):
+                return req
+        return min_by_tier[order[0]]
+
     # ══════════════════════════════════════════════════════════════
     # SECTION A — CIRCUIT-BASED CONSTRAINTS
     # ══════════════════════════════════════════════════════════════
 
     # A1. VRM Power Phases
-    min_phases = VRM_TIERS.get(tier, 4)
+    min_phases = _effective_min(
+        VRM_TIERS,
+        [get_vrm_phases(mobo_df.loc[m]) for m in range(len(mobo_df))]
+    )
     for m in range(len(mobo_df)):
         phases = get_vrm_phases(mobo_df.loc[m])
         if phases > 0 and phases < min_phases:
             model.Add(mobo_vars[m] == 0)
 
     # A2. PCIe Version
-    min_pcie = PCIE_MIN_VERSION.get(tier, 4)
+    min_pcie = _effective_min(
+        PCIE_MIN_VERSION,
+        [get_pcie_version(mobo_df.loc[m]) for m in range(len(mobo_df))]
+    )
     for m in range(len(mobo_df)):
         pcie = get_pcie_version(mobo_df.loc[m])
         if pcie > 0 and pcie < min_pcie:
@@ -56,14 +80,20 @@ def add_mobo_constraints(model, mobo_df, mobo_vars,
                     model.Add(gpu_vars[g] + mobo_vars[m] <= 1)
 
     # A3. M.2 Slots
-    min_m2 = M2_MIN_SLOTS.get(tier, 1)
+    min_m2 = _effective_min(
+        M2_MIN_SLOTS,
+        [get_m2_slots(mobo_df.loc[m]) for m in range(len(mobo_df))]
+    )
     for m in range(len(mobo_df)):
         slots = get_m2_slots(mobo_df.loc[m])
         if slots > 0 and slots < min_m2:
             model.Add(mobo_vars[m] == 0)
 
     # A4. USB Count
-    min_usb = USB_MIN_COUNT.get(tier, 4)
+    min_usb = _effective_min(
+        USB_MIN_COUNT,
+        [get_usb_count(mobo_df.loc[m]) for m in range(len(mobo_df))]
+    )
     for m in range(len(mobo_df)):
         usb = get_usb_count(mobo_df.loc[m])
         if usb > 0 and usb < min_usb:
@@ -88,26 +118,49 @@ def add_mobo_constraints(model, mobo_df, mobo_vars,
                 model.Add(cpu_vars[i] + mobo_vars[j] <= 1)
 
     # B2. Budget tier ↔ chipset tier
+    #
+    # Rule: don't over-restrict. The goal is to prevent mismatches
+    # (e.g. entry board at ultra budget), not to force the most
+    # expensive board at every tier.
+    #
+    # AMD tier thresholds:
+    #   A320/A520/A620   — block above ₹2L (entry chipsets only)
+    #   B450/B550        — block above ₹5L (AM4 boards, getting old)
+    #   B650/B840/B850   — block above ₹7L (mid AM5, fine up to ultra)
+    #   X670/X870 series — block below ₹2L (too expensive for entry)
+    #
+    # Intel tier thresholds:
+    #   H610/H510/H410   — block above ₹2L (entry only)
+    #   B560/B660        — block above ₹5L (older B-series)
+    #   B760/B860        — block above ₹7L (current B-series, fine at high)
+    #   Z690/Z790/Z890   — block below ₹2L (too expensive for entry)
+
     for m in range(len(mobo_df)):
         mobo_name = str(mobo_df.loc[m, "Name"]).upper()
 
         # AMD
-        if any(x in mobo_name for x in ["A620", "A520"]):
+        if any(x in mobo_name for x in ["A320", "A520", "A620"]):
             if budget > 200000:
                 model.Add(mobo_vars[m] == 0)
-        elif any(x in mobo_name for x in ["B450", "B550", "B650"]):
-            if budget > 450000:
+        elif any(x in mobo_name for x in ["B450", "B550"]):
+            if budget > 500000:
                 model.Add(mobo_vars[m] == 0)
-        elif any(x in mobo_name for x in ["X670", "X670E", "X870"]):
+        elif any(x in mobo_name for x in ["B650", "B840", "B850"]):
+            if budget > 700000:
+                model.Add(mobo_vars[m] == 0)
+        elif any(x in mobo_name for x in ["X670", "X670E", "X870", "X870E"]):
             if budget < 200000:
                 model.Add(mobo_vars[m] == 0)
 
         # Intel
-        elif any(x in mobo_name for x in ["H610", "H510", "H410"]):
+        elif any(x in mobo_name for x in ["H610", "H510", "H410", "H810"]):
             if budget > 200000:
                 model.Add(mobo_vars[m] == 0)
-        elif any(x in mobo_name for x in ["B660", "B760", "B560"]):
-            if budget > 450000:
+        elif any(x in mobo_name for x in ["B560", "B660"]):
+            if budget > 500000:
+                model.Add(mobo_vars[m] == 0)
+        elif any(x in mobo_name for x in ["B760", "B860"]):
+            if budget > 700000:
                 model.Add(mobo_vars[m] == 0)
         elif any(x in mobo_name for x in ["Z690", "Z790", "Z890"]):
             if budget < 200000:
