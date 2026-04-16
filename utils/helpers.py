@@ -68,15 +68,29 @@ def get_budget_tier(budget: int) -> str:
 def calculate_budget_range(budget: int):
     """
     Calculate (lower_limit, upper_limit) for the CP-SAT budget constraint.
-    Matches original logic: core = 90% of budget, then a band around that.
+
+    Upper limit: how much the solver can spend (caps near full budget).
+    Lower limit: minimum spend floor — set conservatively so the solver
+                 is never forced into an impossible corner.
+
+    The lower limit is intentionally loose — the objective function
+    (maximise performance score) will naturally push the solver toward
+    spending more of the budget. We don't need a tight lower bound to
+    achieve this; a tight lower bound only causes infeasibility.
     """
-    core_budget = int(budget * 0.9)
-    if budget <= 200000:
-        lower = int(core_budget * 0.92)
-        upper = int(core_budget * 1.02)
-    else:
-        lower = int(core_budget * 0.85)
-        upper = int(core_budget * 1.10)
+    upper = int(budget * 0.96)   # never spend more than 96% of budget
+
+    if budget <= 100000:         # entry
+        lower = int(budget * 0.70)
+    elif budget <= 200000:       # low
+        lower = int(budget * 0.65)
+    elif budget <= 400000:       # mid
+        lower = int(budget * 0.55)
+    elif budget <= 700000:       # high — was too tight, caused 6L failure
+        lower = int(budget * 0.40)
+    else:                        # ultra
+        lower = int(budget * 0.35)
+
     return lower, upper
 
 
